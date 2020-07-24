@@ -2,6 +2,9 @@
 // The Microsoft Corporation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
+using System.Collections.Generic;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -9,8 +12,6 @@ namespace Microsoft.PowerToys.Settings.UI.Lib
 {
     public class FZConfigProperties
     {
-        public static readonly HotkeySettings DefaultHotkeyValue = new HotkeySettings(true, false, false, false, 0xc0);
-
         public FZConfigProperties()
         {
             FancyzonesShiftDrag = new BoolProperty(ConfigDefaults.DefaultFancyzonesShiftDrag);
@@ -26,7 +27,16 @@ namespace Microsoft.PowerToys.Settings.UI.Lib
             FancyzonesShowOnAllMonitors = new BoolProperty();
             FancyzonesZoneHighlightColor = new StringProperty(ConfigDefaults.DefaultFancyZonesZoneHighlightColor);
             FancyzonesHighlightOpacity = new IntProperty(50);
-            FancyzonesEditorHotkey = new KeyboardKeysProperty(DefaultHotkeyValue);
+            FancyzonesEditorHotkey = new KeyboardKeysProperty(
+                new HotkeySettings()
+                {
+                    Win = true,
+                    Ctrl = false,
+                    Alt = false,
+                    Shift = false,
+                    Key = "`",
+                    Code = 192,
+                });
             FancyzonesMakeDraggedWindowTransparent = new BoolProperty();
             FancyzonesExcludedApps = new StringProperty();
             FancyzonesInActiveColor = new StringProperty(ConfigDefaults.DefaultFancyZonesInActiveColor);

@@ -12,33 +12,27 @@ namespace Microsoft.PowerToys.Settings.UI.Lib
     {
         public HotkeySettings()
         {
-            Win = false;
-            Ctrl = false;
-            Alt = false;
-            Shift = false;
-            Code = 0;
+            this.Win = false;
+            this.Ctrl = false;
+            this.Alt = false;
+            this.Shift = false;
+            this.Key = string.Empty;
+            this.Code = 0;
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="HotkeySettings"/> class.
-        /// </summary>
-        /// <param name="win">Should Windows key be used</param>
-        /// <param name="ctrl">Should Ctrl key be used</param>
-        /// <param name="alt">Should Alt key be used</param>
-        /// <param name="shift">Should Shift key be used</param>
-        /// <param name="code">Go to https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes to see list of v-keys</param>
-        public HotkeySettings(bool win, bool ctrl, bool alt, bool shift, int code)
+        public HotkeySettings(bool win, bool ctrl, bool alt, bool shift, string key, int code)
         {
             Win = win;
             Ctrl = ctrl;
             Alt = alt;
             Shift = shift;
+            Key = key;
             Code = code;
         }
 
         public HotkeySettings Clone()
         {
-            return new HotkeySettings(Win, Ctrl, Alt, Shift, Code);
+            return new HotkeySettings(Win, Ctrl, Alt, Shift, Key, Code);
         }
 
         [JsonPropertyName("win")]
@@ -52,6 +46,9 @@ namespace Microsoft.PowerToys.Settings.UI.Lib
 
         [JsonPropertyName("shift")]
         public bool Shift { get; set; }
+
+        [JsonPropertyName("key")]
+        public string Key { get; set; }
 
         [JsonPropertyName("code")]
         public int Code { get; set; }

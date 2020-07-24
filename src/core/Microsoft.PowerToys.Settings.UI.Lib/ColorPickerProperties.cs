@@ -17,8 +17,8 @@ namespace Microsoft.PowerToys.Settings.UI.Lib
     {
         public ColorPickerProperties()
         {
-            ActivationShortcut = new HotkeySettings(true, false, false, true, 0x43);
-            ChangeCursor = false;
+            ActivationShortcut = new HotkeySettings(false, true, false, false, "Break", 3);
+            ChangeCursor = true;
         }
 
         public HotkeySettings ActivationShortcut { get; set; }
