@@ -14,4 +14,7 @@ namespace CommonSharedConstants
 
     // Path to the event used to close the PowerLauncher
     const wchar_t POWER_LAUNCHER_CLOSE_SHARED_EVENT[] = L"Local\\PowerToysRunCloseEvent-7736b9a2-4ebc-4527-9a47-a4bbadfab2f7";
+
+    // Max DWORD for key code to disable keys.
+    const DWORD VK_DISABLED = 0x100;
 }
