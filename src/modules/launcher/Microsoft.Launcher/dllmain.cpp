@@ -59,7 +59,7 @@ private:
     //contains the name of the powerToys
     std::wstring app_name;
 
-    // Time to wait for process to close after sending WM_CLOSE signal
+    // Time to wait for process to close after sending the signal to close
     static const int MAX_WAIT_MILLISEC = 10000;
 
     // Hotkey to invoke the module
@@ -69,7 +69,10 @@ private:
     void parse_hotkey(PowerToysSettings::PowerToyValues& settings);
 
     // Handle to event used to invoke the Runner
-    HANDLE m_hEvent;
+    HANDLE m_hInvokeEvent;
+
+    // Handle to event used to close the Runner
+    HANDLE m_hCloseEvent;
 
 public:
     // Constructor
@@ -82,7 +85,8 @@ public:
         sa.nLength = sizeof(sa);
         sa.bInheritHandle = false;
         sa.lpSecurityDescriptor = NULL;
-        m_hEvent = CreateEventW(&sa, FALSE, FALSE, CommonSharedConstants::POWER_LAUNCHER_SHARED_EVENT);
+        m_hInvokeEvent = CreateEventW(&sa, FALSE, FALSE, CommonSharedConstants::POWER_LAUNCHER_INVOKE_SHARED_EVENT);
+        m_hCloseEvent = CreateEventW(&sa, FALSE, FALSE, CommonSharedConstants::POWER_LAUNCHER_CLOSE_SHARED_EVENT);
     };
 
     ~Microsoft_Launcher()
@@ -161,7 +165,8 @@ public:
     // Enable the powertoy
     virtual void enable()
     {
-        ResetEvent(m_hEvent);
+        ResetEvent(m_hInvokeEvent);
+        ResetEvent(m_hCloseEvent);
         // Start PowerLauncher.exe only if the OS is 19H1 or higher
         if (UseNewSettings())
         {
@@ -234,7 +239,7 @@ public:
     {
         if (m_enabled)
         {
-            ResetEvent(m_hEvent);
+            ResetEvent(m_hInvokeEvent);
             terminateProcess();
         }
 
@@ -271,39 +276,25 @@ public:
         // For now, hotkeyId will always be zero
         if (m_enabled)
         {
-            SetEvent(m_hEvent);
+            SetEvent(m_hInvokeEvent);
             return true;
         }
 
         return false;
     }
 
-    // Callback to send WM_CLOSE signal to each top level window.
-    static BOOL CALLBACK requestMainWindowClose(HWND nextWindow, LPARAM closePid)
-    {
-        DWORD windowPid;
-        GetWindowThreadProcessId(nextWindow, &windowPid);
-
-        if (windowPid == (DWORD)closePid)
-            ::PostMessage(nextWindow, WM_CLOSE, 0, 0);
-
-        return true;
-    }
-
     // Terminate process by sending WM_CLOSE signal and if it fails, force terminate.
     void terminateProcess()
     {
         DWORD processID = GetProcessId(m_hProcess);
-        TerminateProcess(m_hProcess, 1);
-        // Temporarily disable sending a message to close
-        /*
-        EnumWindows(&requestMainWindowClose, processID);
+        SetEvent(m_hCloseEvent);
+
         const DWORD result = WaitForSingleObject(m_hProcess, MAX_WAIT_MILLISEC);
         if (result == WAIT_TIMEOUT || result == WAIT_FAILED)
         {
             TerminateProcess(m_hProcess, 1);
         }
-        */
+        
     }
 };
 

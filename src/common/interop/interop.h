@@ -128,9 +128,14 @@ public
     public:
         literal int VK_WIN_BOTH = CommonSharedConstants::VK_WIN_BOTH;
         
-        static String^ PowerLauncherSharedEvent()
+        static String^ PowerLauncherInvokeSharedEvent()
         {
-            return gcnew String(CommonSharedConstants::POWER_LAUNCHER_SHARED_EVENT);
+            return gcnew String(CommonSharedConstants::POWER_LAUNCHER_INVOKE_SHARED_EVENT);
+        }
+
+        static String^ PowerLauncherCloseSharedEvent()
+        {
+            return gcnew String(CommonSharedConstants::POWER_LAUNCHER_CLOSE_SHARED_EVENT);
         }
     };
 }

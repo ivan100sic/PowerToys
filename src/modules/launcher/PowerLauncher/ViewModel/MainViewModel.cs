@@ -76,10 +76,11 @@ namespace PowerLauncher.ViewModel
 
             InitializeKeyCommands();
             RegisterResultsUpdatedEvent();
+            NativeEventWaiter.WaitForEventLoop(Constants.PowerLauncherCloseSharedEvent(), System.Windows.Forms.Application.Exit);
 
             if (settings != null && settings.UsePowerToysRunnerKeyboardHook)
             {
-                NativeEventWaiter.WaitForEventLoop(Constants.PowerLauncherSharedEvent(), OnHotkey);
+                NativeEventWaiter.WaitForEventLoop(Constants.PowerLauncherInvokeSharedEvent(), OnHotkey);
                 _hotkeyHandle = 0;
             }
             else
