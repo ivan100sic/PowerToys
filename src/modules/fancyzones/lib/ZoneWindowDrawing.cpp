@@ -79,7 +79,7 @@ namespace
         g.DrawString(text.c_str(), -1, &font, gdiRect, &stringFormat, &solidBrush);
     }
 
-    void DrawZone(wil::unique_hdc& hdc, ZoneWindowDrawing::ColorSetting const& colorSetting, winrt::com_ptr<IZone> zone, const std::vector<winrt::com_ptr<IZone>>& zones, bool flashMode) noexcept
+    void DrawZone(wil::unique_hdc& hdc, ZoneWindowDrawingNS::ColorSetting const& colorSetting, winrt::com_ptr<IZone> zone, const std::vector<winrt::com_ptr<IZone>>& zones, bool flashMode) noexcept
     {
         RECT zoneRect = zone->GetZoneRect();
 
@@ -100,7 +100,7 @@ namespace
     }
 }
 
-namespace ZoneWindowDrawing
+namespace ZoneWindowDrawingNS
 {
     void DrawBackdrop(wil::unique_hdc& hdc, RECT const& clientRect) noexcept
     {
