@@ -135,7 +135,7 @@ void ZoneWindowDrawing::Render()
     for (auto drawableRect : m_sceneRects)
     {
         ID2D1SolidColorBrush* borderBrush = nullptr;
-        ID2D1SolidColorBrush* fillBrush = nullptr;
+        ID2D1LinearGradientBrush* fillBrush = nullptr;
         ID2D1SolidColorBrush* textBrush = nullptr;
 
         // Need to copy the rect from m_sceneRects
@@ -143,7 +143,28 @@ void ZoneWindowDrawing::Render()
         drawableRect.fillColor.a *= animationAlpha;
 
         m_renderTarget->CreateSolidColorBrush(drawableRect.borderColor, &borderBrush);
-        m_renderTarget->CreateSolidColorBrush(drawableRect.fillColor, &fillBrush);
+
+        D2D1_GRADIENT_STOP gradientStops[2];
+        gradientStops[0].color = drawableRect.fillColor;
+        gradientStops[0].position = 0.0f;
+        gradientStops[1].color = { 0.f, 0.f, 0.f, 0.f };
+        gradientStops[1].position = 1.0f;
+        ID2D1GradientStopCollection* pGradientStops = NULL;
+        m_renderTarget->CreateGradientStopCollection(
+            gradientStops,
+            2,
+            D2D1_GAMMA_2_2,
+            D2D1_EXTEND_MODE_CLAMP,
+            &pGradientStops);
+
+        m_renderTarget->CreateLinearGradientBrush(
+            D2D1::LinearGradientBrushProperties(
+                D2D1::Point2F(drawableRect.rect.left, drawableRect.rect.top),
+                D2D1::Point2F(drawableRect.rect.right, drawableRect.rect.bottom)),
+            pGradientStops,
+            &fillBrush);
+
+        // m_renderTarget->CreateSolidColorBrush(drawableRect.fillColor, &fillBrush);
         m_renderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black, animationAlpha), &textBrush);
 
         if (fillBrush)
