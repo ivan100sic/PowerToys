@@ -35,7 +35,6 @@ namespace VideoGifCapture
         {
             this.InitializeComponent();
             this.Suspending += OnSuspending;
-            CaptureToy.Run();
         }
 
         /// <summary>
@@ -77,6 +76,8 @@ namespace VideoGifCapture
                 // Ensure the current window is active
                 Window.Current.Activate();
             }
+
+            CaptureToy.Run();
         }
 
         /// <summary>
