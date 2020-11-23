@@ -663,23 +663,21 @@ void FancyZones::ToggleEditor() noexcept
     std::wstring monitorsDataStr;
     for (auto& monitorData : allMonitors)
     {
-        HMONITOR monitor = monitorData.first;
-        auto monitorInfo = monitorData.second;
+        auto monitorId = FancyZonesUtils::GenerateMonitorId(monitor.second, monitor.first, m_currentDesktopId);
+        const auto monitorIdStr = monitorId.Serialize();
 
-        std::wstring deviceId = FancyZonesUtils::GetDisplayDeviceId(monitorInfo.szDevice, displayDeviceIdxMap);
-        std::wstring monitorId = FancyZonesUtils::GenerateUniqueId(monitor, deviceId, virtualDesktopId.get());
-
-        if (monitor == targetMonitor && !spanZonesAcrossMonitors)
+        if (monitor.first == targetMonitor && !spanZonesAcrossMonitors)
         {
-            params += monitorId + divider; /* Monitor id where the Editor should be opened */
+            params += monitorIdStr + divider; /* Monitor id where the Editor should be opened */
         }
 
-        monitorsDataStr += std::move(monitorId) + divider; /* Monitor id */
+        monitorsData += monitorIdStr + divider; /* Monitor id */
+
         UINT dpiX = 0;
         UINT dpiY = 0;
-        if (GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY) == S_OK)
+        if (GetDpiForMonitor(monitor.first, MDT_EFFECTIVE_DPI, &dpiX, &dpiY) == S_OK)
         {
-            monitorsDataStr += std::to_wstring(dpiX) + divider; /* DPI */
+            monitorsData += std::to_wstring(dpiX) + divider; /* DPI */
             if (spanZonesAcrossMonitors && prevDpiX != -1 && (prevDpiX != dpiX || prevDpiY != dpiY))
             {
                 showDpiWarning = true;
@@ -689,8 +687,8 @@ void FancyZones::ToggleEditor() noexcept
             prevDpiY = dpiY;
         }
 
-        monitorsDataStr += std::to_wstring(monitorInfo.rcMonitor.left) + divider; /* Top coordinate */
-        monitorsDataStr += std::to_wstring(monitorInfo.rcMonitor.top) + divider; /* Left coordinate */
+        monitorsData += std::to_wstring(monitor.second.rcMonitor.left) + divider; /* Top coordinate */
+        monitorsData += std::to_wstring(monitor.second.rcMonitor.top) + divider; /* Left coordinate */
     }
 
     params += std::to_wstring(allMonitors.size()) + divider; /* Monitors count */
@@ -892,7 +890,7 @@ void FancyZones::OnDisplayChange(DisplayChangeType changeType) noexcept
         }
         if (changeType == DisplayChangeType::Initialization)
         {
-            std::vector<std::wstring> ids{};
+            std::vector<GUID> ids{};
             if (VirtualDesktopUtils::GetVirtualDesktopIds(ids) && !ids.empty())
             {
                 FancyZonesDataInstance().UpdatePrimaryDesktopData(ids[0]);
@@ -918,32 +916,28 @@ void FancyZones::AddZoneWindow(HMONITOR monitor, const std::wstring& deviceId) n
 
     if (m_workAreaHandler.IsNewWorkArea(m_currentDesktopId, monitor))
     {
-        wil::unique_cotaskmem_string virtualDesktopId;
-        if (SUCCEEDED(StringFromCLSID(m_currentDesktopId, &virtualDesktopId)))
+        FancyZonesDataTypes::DeviceIdData uniqueId;
+
+        if (monitor)
         {
-            std::wstring uniqueId;
+            uniqueId = FancyZonesUtils::GenerateUniqueId(monitor, deviceId, m_currentDesktopId);
+        }
+        else
+        {
+            uniqueId = FancyZonesUtils::GenerateUniqueIdAllMonitorsArea(m_currentDesktopId);
+        }
 
-            if (monitor)
-            {
-                uniqueId = FancyZonesUtils::GenerateUniqueId(monitor, deviceId, virtualDesktopId.get());
-            }
-            else
-            {
-                uniqueId = FancyZonesUtils::GenerateUniqueIdAllMonitorsArea(virtualDesktopId.get());
-            }
-
-            std::wstring parentId{};
-            auto parentArea = m_workAreaHandler.GetWorkArea(m_previousDesktopId, monitor);
-            if (parentArea)
-            {
-                parentId = parentArea->UniqueId();
-            }
-            auto workArea = MakeZoneWindow(this, m_hinstance, monitor, uniqueId, parentId);
-            if (workArea)
-            {
-                m_workAreaHandler.AddWorkArea(m_currentDesktopId, monitor, workArea);
-                FancyZonesDataInstance().SaveFancyZonesData();
-            }
+        FancyZonesDataTypes::DeviceIdData parentId{};
+        auto parentArea = m_workAreaHandler.GetWorkArea(m_previousDesktopId, monitor);
+        if (parentArea)
+        {
+            parentId = parentArea->UniqueId();
+        }
+        auto workArea = MakeZoneWindow(this, m_hinstance, monitor, uniqueId, parentId);
+        if (workArea)
+        {
+            m_workAreaHandler.AddWorkArea(m_currentDesktopId, monitor, workArea);
+            FancyZonesDataInstance().SaveFancyZonesData();
         }
     }
 }
@@ -1280,7 +1274,7 @@ void FancyZones::RegisterVirtualDesktopUpdates(std::vector<GUID>& ids) noexcept
     std::unique_lock writeLock(m_lock);
 
     m_workAreaHandler.RegisterUpdates(ids);
-    std::vector<std::wstring> active{};
+    std::vector<GUID> active{};
     if (VirtualDesktopUtils::GetVirtualDesktopIds(active) && !active.empty())
     {
         FancyZonesDataInstance().UpdatePrimaryDesktopData(active[0]);
