@@ -33,22 +33,41 @@ float ZoneWindowDrawing::GetAnimationAlpha()
     }
 }
 
-ID2D1Factory* ZoneWindowDrawing::GetD2DFactory()
+ID2D1Factory6* ZoneWindowDrawing::GetD2DFactory()
 {
-    static auto pD2DFactory = [] {
-        ID2D1Factory* res = nullptr;
-        D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, &res);
+    static auto pD2DFactory = []() -> ID2D1Factory6* {
+        ID2D1Factory6* res = nullptr;
+        D2D1_FACTORY_OPTIONS options{};
+        
+#if defined(_DEBUG)
+        options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
+#endif
+
+        HRESULT hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory6), &options, (void**)&res);
+        if (FAILED(hr))
+        {
+            Logger::error("couldn't create Direct2D factory: D2D1CreateFactory failed with {}", hr);
+            return nullptr;
+        }
+
         return res;
-    }();
+    } ();
     return pD2DFactory;
 }
 
-IDWriteFactory* ZoneWindowDrawing::GetWriteFactory()
+IDWriteFactory2* ZoneWindowDrawing::GetWriteFactory()
 {
-    static auto pDWriteFactory = [] {
+    static auto pDWriteFactory = []() -> IDWriteFactory2* {
         IUnknown* res = nullptr;
-        DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &res);
-        return reinterpret_cast<IDWriteFactory*>(res);
+
+        HRESULT hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory2), &res);
+        if (FAILED(hr))
+        {
+            Logger::error("couldn't create DWrite factory: DWriteCreateFactory failed with {}", hr);
+            return nullptr;
+        }
+
+        return reinterpret_cast<IDWriteFactory2*>(res);
     }();
     return pDWriteFactory;
 }
@@ -126,6 +145,7 @@ ZoneWindowDrawing::ZoneWindowDrawing(HWND window)
 void ZoneWindowDrawing::Render()
 {
     std::unique_lock lock(m_mutex);
+    HRESULT hr;
 
     if (!m_renderTarget)
     {
@@ -149,7 +169,11 @@ void ZoneWindowDrawing::Render()
 
     if (writeFactory)
     {
-        writeFactory->CreateTextFormat(NonLocalizable::SegoeUiFont, nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 80.f, L"en-US", &textFormat);
+        hr = writeFactory->CreateTextFormat(NonLocalizable::SegoeUiFont, nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 80.f, L"en-US", &textFormat);
+        if (FAILED(hr))
+        {
+            Logger::error("CreateTextFormat failed with {}", hr);
+        }
     }
 
     for (auto drawableRect : m_sceneRects)
@@ -161,8 +185,17 @@ void ZoneWindowDrawing::Render()
         drawableRect.borderColor.a *= animationAlpha;
         drawableRect.fillColor.a *= animationAlpha;
 
-        m_renderTarget->CreateSolidColorBrush(drawableRect.borderColor, &borderBrush);
+        hr = m_renderTarget->CreateSolidColorBrush(drawableRect.borderColor, &borderBrush);
+        if (FAILED(hr))
+        {
+            Logger::error("CreateSolidColorBrush failed with {}", hr);
+        }
+
         m_renderTarget->CreateSolidColorBrush(drawableRect.fillColor, &fillBrush);
+        if (FAILED(hr))
+        {
+            Logger::error("CreateSolidColorBrush failed with {}", hr);
+        }
 
         if (fillBrush)
         {
@@ -180,8 +213,18 @@ void ZoneWindowDrawing::Render()
 
         if (textFormat && textBrush)
         {
-            textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-            textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            hr = textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+            if (FAILED(hr))
+            {
+                Logger::error("SetTextAlignment failed with {}", hr);
+            }
+            
+            hr = textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            if (FAILED(hr))
+            {
+                Logger::error("SetParagraphAlignment failed with {}", hr);
+            }
+
             m_renderTarget->DrawTextW(idStr.c_str(), (UINT32)idStr.size(), textFormat, drawableRect.rect, textBrush);
         }
     }
@@ -196,7 +239,12 @@ void ZoneWindowDrawing::Render()
         textBrush->Release();
     }
 
-    m_renderTarget->EndDraw();
+    hr = m_renderTarget->EndDraw();
+    if (FAILED(hr))
+    {
+        Logger::error("zone window drawing failed with {}", hr);
+    }
+
     m_shouldRender = false;
 }
 
