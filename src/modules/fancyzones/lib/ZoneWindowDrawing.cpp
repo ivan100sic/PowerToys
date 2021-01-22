@@ -33,17 +33,17 @@ float ZoneWindowDrawing::GetAnimationAlpha()
     }
 }
 
-ID2D1Factory6* ZoneWindowDrawing::GetD2DFactory()
+ID2D1Factory7* ZoneWindowDrawing::GetD2DFactory()
 {
-    static auto pD2DFactory = []() -> ID2D1Factory6* {
-        ID2D1Factory6* res = nullptr;
+    static auto pD2DFactory = []() -> ID2D1Factory7* {
+        ID2D1Factory7* res = nullptr;
         D2D1_FACTORY_OPTIONS options{};
         
 #if defined(_DEBUG)
         options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
 #endif
 
-        HRESULT hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory6), &options, (void**)&res);
+        HRESULT hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory7), &options, (void**)&res);
         if (FAILED(hr))
         {
             Logger::error("couldn't create Direct2D factory: D2D1CreateFactory failed with {}", hr);

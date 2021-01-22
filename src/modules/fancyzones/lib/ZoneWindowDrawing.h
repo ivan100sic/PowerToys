@@ -6,6 +6,7 @@
 #include <winrt/base.h>
 #include <d2d1_3.h>
 #include <dwrite_2.h>
+#include <d3d11_4.h>
 
 #include "util.h"
 #include "Zone.h"
@@ -37,7 +38,7 @@ class ZoneWindowDrawing
     std::vector<DrawableRect> m_sceneRects;
 
     float GetAnimationAlpha();
-    static ID2D1Factory6* GetD2DFactory();
+    static ID2D1Factory7* GetD2DFactory();
     static IDWriteFactory2* GetWriteFactory();
     static D2D1_COLOR_F ConvertColor(COLORREF color);
     static D2D1_RECT_F ConvertRect(RECT rect);
