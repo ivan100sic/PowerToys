@@ -22,10 +22,10 @@ namespace DX
         virtual void OnDeviceRestored() = 0;
     };
 
-    class DeviceResources
+    class DeviceResourcesHwnd
     {
     public:
-        DeviceResources();
+        DeviceResourcesHwnd();
 
         // Set output window target.
         void SetHwnd(HWND window);

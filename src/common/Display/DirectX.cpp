@@ -29,13 +29,13 @@ namespace DX
         return SUCCEEDED(hr);
     }
 
-    DeviceResources::DeviceResources()
+    DeviceResourcesHwnd::DeviceResourcesHwnd()
     {
         CreateDeviceIndependentResources();
         CreateDeviceResources();
     }
 
-    void DeviceResources::CreateDeviceIndependentResources()
+    void DeviceResourcesHwnd::CreateDeviceIndependentResources()
     {
         // Initialize Direct2D resources.
         D2D1_FACTORY_OPTIONS options;
@@ -49,7 +49,7 @@ namespace DX
         // Initialize the Direct2D Factory.
         DX::ThrowIfFailed(
             D2D1CreateFactory(
-                D2D1_FACTORY_TYPE_SINGLE_THREADED,
+                D2D1_FACTORY_TYPE_MULTI_THREADED,
                 __uuidof(ID2D1Factory7),
                 &options,
                 m_d2dFactory.put_void()));
@@ -71,7 +71,7 @@ namespace DX
                 m_wicFactory.put_void()));
     }
 
-    void DeviceResources::CreateDeviceResources()
+    void DeviceResourcesHwnd::CreateDeviceResources()
     {
         // This flag adds support for surfaces with a different color channel ordering
         // than the API default. It is required for compatibility with Direct2D.
@@ -155,13 +155,13 @@ namespace DX
         DX::ThrowIfFailed(deviceContext->QueryInterface(m_d2dContext.put()));
     }
 
-    void DeviceResources::SetHwnd(HWND window)
+    void DeviceResourcesHwnd::SetHwnd(HWND window)
     {
         m_window = window;
         CreateWindowSizeDependentResources();
     }
 
-    void DeviceResources::CreateWindowSizeDependentResources()
+    void DeviceResourcesHwnd::CreateWindowSizeDependentResources()
     {
         // Clear the previous window size specific context.
         ID3D11RenderTargetView* nullViews[] = { nullptr };
@@ -220,7 +220,7 @@ namespace DX
             swapChainDesc.BufferCount = 2; // Use double-buffering to minimize latency.
             swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // All Windows Runtime apps must use this SwapEffect.
             swapChainDesc.Flags = 0;
-            swapChainDesc.Scaling = DXGI_SCALING_NONE;
+            swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
             swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
 
             winrt::com_ptr<IDXGIDevice3> dxgiDevice;
@@ -308,7 +308,7 @@ namespace DX
         m_d2dContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
     }
 
-    void DeviceResources::HandleDeviceLost()
+    void DeviceResourcesHwnd::HandleDeviceLost()
     {
         m_swapChain = nullptr;
 
@@ -326,12 +326,12 @@ namespace DX
         }
     }
 
-    void DeviceResources::RegisterDeviceNotify(IDeviceNotify* deviceNotify)
+    void DeviceResourcesHwnd::RegisterDeviceNotify(IDeviceNotify* deviceNotify)
     {
         m_deviceNotify = deviceNotify;
     }
 
-    void DeviceResources::Trim()
+    void DeviceResourcesHwnd::Trim()
     {
         winrt::com_ptr<IDXGIDevice3> dxgiDevice;
         m_d3dDevice->QueryInterface(dxgiDevice.put());
@@ -339,7 +339,7 @@ namespace DX
         dxgiDevice->Trim();
     }
 
-    void DeviceResources::Present()
+    void DeviceResourcesHwnd::Present()
     {
         // The first argument instructs DXGI to block until VSync, putting the application
         // to sleep until the next VSync. This ensures we don't waste any cycles rendering
