@@ -43,20 +43,20 @@ namespace DX
         D2D1_SIZE_U GetOutputSize() const { return m_outputSize; }
 
         // D3D Accessors.
-        ID3D11Device2* GetD3DDevice() const { return m_d3dDevice.get(); }
-        ID3D11DeviceContext3* GetD3DDeviceContext() const { return m_d3dContext.get(); }
-        IDXGISwapChain1* GetSwapChain() const { return m_swapChain.get(); }
+        ID3D11Device5* GetD3DDevice() const { return m_d3dDevice.get(); }
+        ID3D11DeviceContext4* GetD3DDeviceContext() const { return m_d3dContext.get(); }
+        IDXGISwapChain4* GetSwapChain() const { return m_swapChain.get(); }
         D3D_FEATURE_LEVEL GetDeviceFeatureLevel() const { return m_d3dFeatureLevel; }
         ID3D11RenderTargetView* GetBackBufferRenderTargetView() const { return m_d3dRenderTargetView.get(); }
         ID3D11DepthStencilView* GetDepthStencilView() const { return m_d3dDepthStencilView.get(); }
         D3D11_VIEWPORT GetScreenViewport() const { return m_screenViewport; }
 
         // D2D Accessors.
-        ID2D1Factory6* GetD2DFactory() const { return m_d2dFactory.get(); }
+        ID2D1Factory7* GetD2DFactory() const { return m_d2dFactory.get(); }
         ID2D1Device5* GetD2DDevice() const { return m_d2dDevice.get(); }
-        ID2D1DeviceContext5* GetD2DDeviceContext() const { return m_d2dContext.get(); }
+        ID2D1DeviceContext6* GetD2DDeviceContext() const { return m_d2dContext.get(); }
         ID2D1Bitmap1* GetD2DTargetBitmap() const { return m_d2dTargetBitmap.get(); }
-        IDWriteFactory2* GetDWriteFactory() const { return m_dwriteFactory.get(); }
+        IDWriteFactory3* GetDWriteFactory() const { return m_dwriteFactory.get(); }
         IWICImagingFactory2* GetWicImagingFactory() const { return m_wicFactory.get(); }
 
     private:
