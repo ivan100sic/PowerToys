@@ -2,6 +2,33 @@
 
 namespace DX
 {
+    void ThrowIfFailed(HRESULT hr)
+    {
+        if (FAILED(hr))
+        {
+            throw hr;
+        }
+    }
+
+    // Check for SDK Layer support.
+    inline bool SdkLayersAvailable()
+    {
+        HRESULT hr = D3D11CreateDevice(
+            nullptr,
+            D3D_DRIVER_TYPE_NULL, // There is no need to create a real hardware device.
+            0,
+            D3D11_CREATE_DEVICE_DEBUG, // Check for the SDK layers.
+            nullptr, // Any feature level will do.
+            0,
+            D3D11_SDK_VERSION, // Always set this to D3D11_SDK_VERSION for Windows Runtime apps.
+            nullptr, // No need to keep the D3D device reference.
+            nullptr, // No need to know the feature level.
+            nullptr // No need to keep the D3D device context reference.
+        );
+
+        return SUCCEEDED(hr);
+    }
+
     DeviceResources::DeviceResources()
     {
         CreateDeviceIndependentResources();
@@ -125,7 +152,7 @@ namespace DX
                 D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
                 deviceContext.put()));
 
-        deviceContext->QueryInterface(m_d2dContext.put());
+        DX::ThrowIfFailed(deviceContext->QueryInterface(m_d2dContext.put()));
     }
 
     void DeviceResources::SetHwnd(HWND window)
@@ -183,8 +210,8 @@ namespace DX
             // Otherwise, create a new one using the same adapter as the existing Direct3D device.
             DXGI_SWAP_CHAIN_DESC1 swapChainDesc = { 0 };
 
-            swapChainDesc.Width = rect.right - rect.left; // Match the size of the window.
-            swapChainDesc.Height = rect.bottom - rect.top;
+            swapChainDesc.Width = m_outputSize.width; // Match the size of the window.
+            swapChainDesc.Height = m_outputSize.height;
             swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // This is the most common swap chain format.
             swapChainDesc.Stereo = false;
             swapChainDesc.SampleDesc.Count = 1; // Don't use multi-sampling.
@@ -209,7 +236,7 @@ namespace DX
             DX::ThrowIfFailed(dxgiFactory->QueryInterface(dxgiFactory2.put()));
 
             DX::ThrowIfFailed(dxgiFactory2->CreateSwapChainForHwnd(m_d3dDevice.get(), m_window, &swapChainDesc, NULL, NULL, swapChain.put()));
-            swapChain->QueryInterface(m_swapChain.put());
+            DX::ThrowIfFailed(swapChain->QueryInterface(m_swapChain.put()));
             DX::ThrowIfFailed(dxgiDevice->SetMaximumFrameLatency(1));
         }
 
