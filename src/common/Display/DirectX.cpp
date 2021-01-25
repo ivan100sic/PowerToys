@@ -1,3 +1,5 @@
+#define NOMINMAX
+
 #include "DirectX.h"
 
 namespace DX
