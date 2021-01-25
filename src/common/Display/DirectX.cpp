@@ -213,7 +213,7 @@ namespace DX
             swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // All Windows Runtime apps must use this SwapEffect.
             swapChainDesc.Flags = 0;
             swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-            swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+            swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
 
             winrt::com_ptr<IDXGIDevice3> dxgiDevice;
             winrt::check_hresult(m_d3dDevice->QueryInterface(dxgiDevice.put()));
@@ -227,7 +227,24 @@ namespace DX
             winrt::check_hresult(adapter->GetParent(__uuidof(IDXGIFactory), dxgiFactory.put_void()));
             winrt::check_hresult(dxgiFactory->QueryInterface(dxgiFactory2.put()));
 
-            winrt::check_hresult(dxgiFactory2->CreateSwapChainForHwnd(m_d3dDevice.get(), m_window, &swapChainDesc, NULL, NULL, swapChain.put()));
+            winrt::check_hresult(
+                dxgiFactory2->CreateSwapChainForComposition(
+                    dxgiDevice.get(),
+                    &swapChainDesc,
+                    nullptr,
+                    swapChain.put()));
+
+            winrt::check_hresult(
+                DCompositionCreateDevice(
+                    dxgiDevice.get(),
+                    __uuidof(IDCompositionDevice),
+                    m_compositionDevice.put_void()));
+
+            winrt::check_hresult(m_compositionDevice->CreateTargetForHwnd(m_window, true, m_compositionTarget.put()));
+            winrt::check_hresult(m_compositionDevice->CreateVisual(m_compositionVisual.put()));
+            winrt::check_hresult(m_compositionVisual->SetContent(m_swapChain.get()));
+            winrt::check_hresult(m_compositionTarget->SetRoot(m_compositionVisual.get()));
+
             winrt::check_hresult(swapChain->QueryInterface(m_swapChain.put()));
             winrt::check_hresult(dxgiDevice->SetMaximumFrameLatency(1));
         }
