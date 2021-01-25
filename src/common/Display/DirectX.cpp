@@ -40,6 +40,10 @@ namespace DX
         options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
 #endif
 
+        m_d2dFactory = nullptr;
+        m_dwriteFactory = nullptr;
+        m_wicFactory = nullptr;
+
         // Initialize the Direct2D Factory.
         winrt::check_hresult(
             D2D1CreateFactory(
@@ -114,6 +118,10 @@ namespace DX
             // If the initialization fails, fall back to the WARP device.
             // For more information on WARP, see:
             // http://go.microsoft.com/fwlink/?LinkId=286690
+           
+            device = nullptr;
+            context = nullptr;
+            
             winrt::check_hresult(
                 D3D11CreateDevice(
                     nullptr,
@@ -129,14 +137,17 @@ namespace DX
         }
 
         // Store pointers to the Direct3D 11.1 API device and immediate context.
+        m_d3dDevice = nullptr;
         winrt::check_hresult(device->QueryInterface(m_d3dDevice.put()));
 
+        m_d3dContext = nullptr;
         winrt::check_hresult(context->QueryInterface(m_d3dContext.put()));
 
         // Create the Direct2D device object and a corresponding context.
         winrt::com_ptr<IDXGIDevice3> dxgiDevice;
         winrt::check_hresult(m_d3dDevice->QueryInterface(dxgiDevice.put()));
 
+        m_d2dDevice = nullptr;
         winrt::check_hresult(m_d2dFactory->CreateDevice(dxgiDevice.get(), m_d2dDevice.put()));
 
         winrt::com_ptr<ID2D1DeviceContext5> deviceContext;
@@ -146,6 +157,7 @@ namespace DX
                 D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
                 deviceContext.put()));
 
+        m_d2dContext = nullptr;
         winrt::check_hresult(deviceContext->QueryInterface(m_d2dContext.put()));
     }
 
@@ -168,10 +180,7 @@ namespace DX
 
         // Calculate the necessary swap chain and render target size in pixels.
         RECT rect;
-        if (!GetClientRect(m_window, &rect))
-        {
-            throw E_FAIL;
-        }
+        winrt::check_bool(GetClientRect(m_window, &rect));
 
         m_outputSize.width = std::max(1L, rect.right - rect.left);
         m_outputSize.height = std::max(1L, rect.bottom - rect.top);
@@ -212,11 +221,16 @@ namespace DX
                 nullptr,
                 swapChain.put()));
 
+        m_compositionDevice = nullptr;
+
         winrt::check_hresult(
             DCompositionCreateDevice(
                 dxgiDevice.get(),
                 __uuidof(IDCompositionDevice),
                 m_compositionDevice.put_void()));
+
+        m_compositionTarget = nullptr;
+        m_compositionVisual = nullptr;
 
         winrt::check_hresult(m_compositionDevice->CreateTargetForHwnd(m_window, true, m_compositionTarget.put()));
         winrt::check_hresult(m_compositionDevice->CreateVisual(m_compositionVisual.put()));
