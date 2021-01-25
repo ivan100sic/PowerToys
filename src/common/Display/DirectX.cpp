@@ -176,80 +176,55 @@ namespace DX
         m_outputSize.width = std::max(1L, rect.right - rect.left);
         m_outputSize.height = std::max(1L, rect.bottom - rect.top);
 
-        if (m_swapChain)
-        {
-            HRESULT hr = m_swapChain->ResizeBuffers(
-                2, // Double-buffered swap chain.
-                m_outputSize.width,
-                m_outputSize.height,
-                DXGI_FORMAT_B8G8R8A8_UNORM,
-                0);
+        m_swapChain = nullptr;
+       
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc = { 0 };
 
-            if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
-            {
-                // If the device was removed for any reason, a new device and swap chain will need to be created.
-                HandleDeviceLost();
+        swapChainDesc.Width = m_outputSize.width; // Match the size of the window.
+        swapChainDesc.Height = m_outputSize.height;
+        swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // This is the most common swap chain format.
+        swapChainDesc.Stereo = false;
+        swapChainDesc.SampleDesc.Count = 1; // Don't use multi-sampling.
+        swapChainDesc.SampleDesc.Quality = 0;
+        swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        swapChainDesc.BufferCount = 2; // Use double-buffering to minimize latency.
+        swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // All Windows Runtime apps must use this SwapEffect.
+        swapChainDesc.Flags = 0;
+        swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+        swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
 
-                // Everything is set up now. Do not continue execution of this method. HandleDeviceLost will reenter this method
-                // and correctly set up the new device.
-                return;
-            }
-            else
-            {
-                winrt::check_hresult(hr);
-            }
-        }
-        else
-        {
-            // Otherwise, create a new one using the same adapter as the existing Direct3D device.
-            DXGI_SWAP_CHAIN_DESC1 swapChainDesc = { 0 };
+        winrt::com_ptr<IDXGIDevice3> dxgiDevice;
+        winrt::check_hresult(m_d3dDevice->QueryInterface(dxgiDevice.put()));
 
-            swapChainDesc.Width = m_outputSize.width; // Match the size of the window.
-            swapChainDesc.Height = m_outputSize.height;
-            swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // This is the most common swap chain format.
-            swapChainDesc.Stereo = false;
-            swapChainDesc.SampleDesc.Count = 1; // Don't use multi-sampling.
-            swapChainDesc.SampleDesc.Quality = 0;
-            swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-            swapChainDesc.BufferCount = 2; // Use double-buffering to minimize latency.
-            swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // All Windows Runtime apps must use this SwapEffect.
-            swapChainDesc.Flags = 0;
-            swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-            swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
+        winrt::com_ptr<IDXGIAdapter> adapter;
+        winrt::com_ptr<IDXGIFactory> dxgiFactory;
+        winrt::com_ptr<IDXGIFactory2> dxgiFactory2;
+        winrt::com_ptr<IDXGISwapChain1> swapChain;
 
-            winrt::com_ptr<IDXGIDevice3> dxgiDevice;
-            winrt::check_hresult(m_d3dDevice->QueryInterface(dxgiDevice.put()));
+        winrt::check_hresult(dxgiDevice->GetAdapter(adapter.put()));
+        winrt::check_hresult(adapter->GetParent(__uuidof(IDXGIFactory), dxgiFactory.put_void()));
+        winrt::check_hresult(dxgiFactory->QueryInterface(dxgiFactory2.put()));
 
-            winrt::com_ptr<IDXGIAdapter> adapter;
-            winrt::com_ptr<IDXGIFactory> dxgiFactory;
-            winrt::com_ptr<IDXGIFactory2> dxgiFactory2;
-            winrt::com_ptr<IDXGISwapChain1> swapChain;
+        winrt::check_hresult(
+            dxgiFactory2->CreateSwapChainForComposition(
+                dxgiDevice.get(),
+                &swapChainDesc,
+                nullptr,
+                swapChain.put()));
 
-            winrt::check_hresult(dxgiDevice->GetAdapter(adapter.put()));
-            winrt::check_hresult(adapter->GetParent(__uuidof(IDXGIFactory), dxgiFactory.put_void()));
-            winrt::check_hresult(dxgiFactory->QueryInterface(dxgiFactory2.put()));
+        winrt::check_hresult(
+            DCompositionCreateDevice(
+                dxgiDevice.get(),
+                __uuidof(IDCompositionDevice),
+                m_compositionDevice.put_void()));
 
-            winrt::check_hresult(
-                dxgiFactory2->CreateSwapChainForComposition(
-                    dxgiDevice.get(),
-                    &swapChainDesc,
-                    nullptr,
-                    swapChain.put()));
+        winrt::check_hresult(m_compositionDevice->CreateTargetForHwnd(m_window, true, m_compositionTarget.put()));
+        winrt::check_hresult(m_compositionDevice->CreateVisual(m_compositionVisual.put()));
+        winrt::check_hresult(m_compositionVisual->SetContent(m_swapChain.get()));
+        winrt::check_hresult(m_compositionTarget->SetRoot(m_compositionVisual.get()));
 
-            winrt::check_hresult(
-                DCompositionCreateDevice(
-                    dxgiDevice.get(),
-                    __uuidof(IDCompositionDevice),
-                    m_compositionDevice.put_void()));
-
-            winrt::check_hresult(m_compositionDevice->CreateTargetForHwnd(m_window, true, m_compositionTarget.put()));
-            winrt::check_hresult(m_compositionDevice->CreateVisual(m_compositionVisual.put()));
-            winrt::check_hresult(m_compositionVisual->SetContent(m_swapChain.get()));
-            winrt::check_hresult(m_compositionTarget->SetRoot(m_compositionVisual.get()));
-
-            winrt::check_hresult(swapChain->QueryInterface(m_swapChain.put()));
-            winrt::check_hresult(dxgiDevice->SetMaximumFrameLatency(1));
-        }
+        winrt::check_hresult(swapChain->QueryInterface(m_swapChain.put()));
+        winrt::check_hresult(dxgiDevice->SetMaximumFrameLatency(1));
 
         // Create a render target view of the swap chain back buffer.
         winrt::com_ptr<ID3D11Texture2D> backBuffer;
