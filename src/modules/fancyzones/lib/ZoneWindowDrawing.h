@@ -2,10 +2,7 @@
 
 #include <map>
 #include <vector>
-#include <wil\resource.h>
-#include <winrt/base.h>
-#include <d2d1.h>
-#include <dwrite.h>
+#include "common/Display/DirectX.h"
 
 #include "util.h"
 #include "Zone.h"
@@ -29,16 +26,13 @@ class ZoneWindowDrawing
     };
 
     HWND m_window = nullptr;
-    RECT m_clientRect{};
-    ID2D1HwndRenderTarget* m_renderTarget = nullptr;
+    std::unique_ptr<DX::DeviceResourcesHwnd> m_dxResources;
     std::optional<AnimationInfo> m_animation;
 
     std::mutex m_mutex;
     std::vector<DrawableRect> m_sceneRects;
 
     float GetAnimationAlpha();
-    static ID2D1Factory* GetD2DFactory();
-    static IDWriteFactory* GetWriteFactory();
     static D2D1_COLOR_F ConvertColor(COLORREF color);
     static D2D1_RECT_F ConvertRect(RECT rect);
     void Render();

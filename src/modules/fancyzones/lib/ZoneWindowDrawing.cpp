@@ -33,26 +33,6 @@ float ZoneWindowDrawing::GetAnimationAlpha()
     }
 }
 
-ID2D1Factory* ZoneWindowDrawing::GetD2DFactory()
-{
-    static auto pD2DFactory = [] {
-        ID2D1Factory* res = nullptr;
-        D2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, &res);
-        return res;
-    }();
-    return pD2DFactory;
-}
-
-IDWriteFactory* ZoneWindowDrawing::GetWriteFactory()
-{
-    static auto pDWriteFactory = [] {
-        IUnknown* res = nullptr;
-        DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &res);
-        return reinterpret_cast<IDWriteFactory*>(res);
-    }();
-    return pDWriteFactory;
-}
-
 D2D1_COLOR_F ZoneWindowDrawing::ConvertColor(COLORREF color)
 {
     return D2D1::ColorF(GetRValue(color) / 255.f,
@@ -68,34 +48,16 @@ D2D1_RECT_F ZoneWindowDrawing::ConvertRect(RECT rect)
 
 ZoneWindowDrawing::ZoneWindowDrawing(HWND window)
 {
-    HRESULT hr;
     m_window = window;
-    m_renderTarget = nullptr;
-    m_shouldRender = false;
-
-    // Obtain the size of the drawing area.
-    if (!GetClientRect(window, &m_clientRect))
+    try
     {
-        Logger::error("couldn't initialize ZoneWindowDrawing: GetClientRect failed");
-        return;
+        m_dxResources = std::make_unique<DX::DeviceResourcesHwnd>();
+        m_dxResources->SetHwnd(window);
     }
-
-    // Create a Direct2D render target
-    // We should always use the DPI value of 96 since we're running in DPI aware mode
-    auto renderTargetProperties = D2D1::RenderTargetProperties(
-        D2D1_RENDER_TARGET_TYPE_DEFAULT,
-        D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED),
-        96.f,
-        96.f);
-    
-    auto renderTargetSize = D2D1::SizeU(m_clientRect.right - m_clientRect.left, m_clientRect.bottom - m_clientRect.top);
-    auto hwndRenderTargetProperties = D2D1::HwndRenderTargetProperties(window, renderTargetSize);
-
-    hr = GetD2DFactory()->CreateHwndRenderTarget(renderTargetProperties, hwndRenderTargetProperties, &m_renderTarget);
-
-    if (!SUCCEEDED(hr))
+    catch (HRESULT hr)
     {
-        Logger::error("couldn't initialize ZoneWindowDrawing: CreateHwndRenderTarget failed with {}", hr);
+        m_dxResources = nullptr;
+        Logger::error("couldn't initialize ZoneWindowDrawing: m_dxResources failed to initialize: {}", hr);
         return;
     }
 
@@ -127,25 +89,26 @@ void ZoneWindowDrawing::Render()
 {
     std::unique_lock lock(m_mutex);
 
-    if (!m_renderTarget)
+    if (!m_dxResources)
     {
         return;
     }
 
     m_cv.wait(lock, [this]() { return (bool)m_shouldRender; });
 
-    m_renderTarget->BeginDraw();
+    auto renderTarget = m_dxResources->GetD2DDeviceContext();
+    renderTarget->BeginDraw();
     
     float animationAlpha = GetAnimationAlpha();
 
     // Draw backdrop
-    m_renderTarget->Clear(D2D1::ColorF(0.f, 0.f, 0.f, 0.f));
+    renderTarget->Clear(D2D1::ColorF(0.f, 0.f, 0.f, 0.f));
 
     ID2D1SolidColorBrush* textBrush = nullptr;
     IDWriteTextFormat* textFormat = nullptr;
 
-    m_renderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black, animationAlpha), &textBrush);
-    auto writeFactory = GetWriteFactory();
+    renderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black, animationAlpha), &textBrush);
+    auto writeFactory = m_dxResources->GetDWriteFactory();
 
     if (writeFactory)
     {
@@ -161,18 +124,18 @@ void ZoneWindowDrawing::Render()
         drawableRect.borderColor.a *= animationAlpha;
         drawableRect.fillColor.a *= animationAlpha;
 
-        m_renderTarget->CreateSolidColorBrush(drawableRect.borderColor, &borderBrush);
-        m_renderTarget->CreateSolidColorBrush(drawableRect.fillColor, &fillBrush);
+        renderTarget->CreateSolidColorBrush(drawableRect.borderColor, &borderBrush);
+        renderTarget->CreateSolidColorBrush(drawableRect.fillColor, &fillBrush);
 
         if (fillBrush)
         {
-            m_renderTarget->FillRectangle(drawableRect.rect, fillBrush);
+            renderTarget->FillRectangle(drawableRect.rect, fillBrush);
             fillBrush->Release();
         }
 
         if (borderBrush)
         {
-            m_renderTarget->DrawRectangle(drawableRect.rect, borderBrush);
+            renderTarget->DrawRectangle(drawableRect.rect, borderBrush);
             borderBrush->Release();
         }
 
@@ -182,7 +145,7 @@ void ZoneWindowDrawing::Render()
         {
             textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
             textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            m_renderTarget->DrawTextW(idStr.c_str(), (UINT32)idStr.size(), textFormat, drawableRect.rect, textBrush);
+            renderTarget->DrawTextW(idStr.c_str(), (UINT32)idStr.size(), textFormat, drawableRect.rect, textBrush);
         }
     }
 
@@ -196,7 +159,9 @@ void ZoneWindowDrawing::Render()
         textBrush->Release();
     }
 
-    m_renderTarget->EndDraw();
+    renderTarget->EndDraw();
+    m_dxResources->Present();
+
     m_shouldRender = false;
 }
 
@@ -318,9 +283,4 @@ ZoneWindowDrawing::~ZoneWindowDrawing()
     }
     m_cv.notify_all();
     m_renderThread.join();
-
-    if (m_renderTarget)
-    {
-        m_renderTarget->Release();
-    }
 }
