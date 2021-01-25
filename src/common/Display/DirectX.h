@@ -6,6 +6,7 @@
 #include <d2d1_3.h>
 #include <dwrite_3.h>
 #include <wincodec.h>
+#include <dcomp.h>
 
 #include <algorithm>
 
@@ -70,6 +71,9 @@ namespace DX
         winrt::com_ptr<ID3D11RenderTargetView> m_d3dRenderTargetView;
         winrt::com_ptr<ID3D11DepthStencilView> m_d3dDepthStencilView;
         winrt::com_ptr<ID2D1Bitmap1> m_d2dTargetBitmap;
+        winrt::com_ptr<IDCompositionDevice> m_compositionDevice;
+        winrt::com_ptr<IDCompositionTarget> m_compositionTarget;
+        winrt::com_ptr<IDCompositionVisual> m_compositionVisual;
 
         HWND m_window{};
         D2D1_SIZE_U m_outputSize;
