@@ -221,7 +221,7 @@ namespace DX
             swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL; // All Windows Runtime apps must use this SwapEffect.
             swapChainDesc.Flags = 0;
             swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-            swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
+            swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
             winrt::com_ptr<IDXGIDevice3> dxgiDevice;
             DX::ThrowIfFailed(m_d3dDevice->QueryInterface(dxgiDevice.put()));
