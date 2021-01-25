@@ -11,8 +11,6 @@
 
 namespace DX
 {
-    void ThrowIfFailed(HRESULT hr);
-
     // Check for SDK Layer support.
     inline bool SdkLayersAvailable();
     
@@ -85,7 +83,5 @@ namespace DX
         void CreateDeviceResources();
         void CreateWindowSizeDependentResources();
         void HandleDeviceLost();
-
-        
     };
 }
