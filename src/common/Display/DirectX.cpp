@@ -358,6 +358,7 @@ namespace DX
         else
         {
             winrt::check_hresult(hr);
+            winrt::check_hresult(m_compositionDevice->Commit());
         }
     }
 }
