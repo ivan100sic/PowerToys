@@ -67,6 +67,9 @@ namespace DX
                 CLSCTX_INPROC_SERVER,
                 __uuidof(IWICImagingFactory2),
                 m_wicFactory.put_void()));
+
+        // Initialize the DXGI Factory.
+        winrt::check_hresult(CreateDXGIFactory2(0, __uuidof(m_dxgiFactory), m_dxgiFactory.put_void()));
     }
 
     void DeviceResourcesHwnd::CreateDeviceResources()
@@ -159,6 +162,8 @@ namespace DX
 
         m_d2dContext = nullptr;
         winrt::check_hresult(deviceContext->QueryInterface(m_d2dContext.put()));
+
+        winrt::check_hresult(m_d3dDevice->QueryInterface(m_dxgiDevice.put()));
     }
 
     void DeviceResourcesHwnd::SetHwnd(HWND window)
@@ -185,8 +190,6 @@ namespace DX
         m_outputSize.width = std::max(1L, rect.right - rect.left);
         m_outputSize.height = std::max(1L, rect.bottom - rect.top);
 
-        m_swapChain = nullptr;
-       
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc = { 0 };
 
         swapChainDesc.Width = m_outputSize.width; // Match the size of the window.
@@ -202,43 +205,46 @@ namespace DX
         swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
         swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
 
-        winrt::com_ptr<IDXGIDevice3> dxgiDevice;
-        winrt::check_hresult(m_d3dDevice->QueryInterface(dxgiDevice.put()));
-
-        winrt::com_ptr<IDXGIAdapter> adapter;
-        winrt::com_ptr<IDXGIFactory> dxgiFactory;
-        winrt::com_ptr<IDXGIFactory2> dxgiFactory2;
-        winrt::com_ptr<IDXGISwapChain1> swapChain;
-
-        winrt::check_hresult(dxgiDevice->GetAdapter(adapter.put()));
-        winrt::check_hresult(adapter->GetParent(__uuidof(IDXGIFactory), dxgiFactory.put_void()));
-        winrt::check_hresult(dxgiFactory->QueryInterface(dxgiFactory2.put()));
-
+        m_swapChain = nullptr;
         winrt::check_hresult(
-            dxgiFactory2->CreateSwapChainForComposition(
-                dxgiDevice.get(),
+            m_dxgiFactory->CreateSwapChainForComposition(
+                m_dxgiDevice.get(),
                 &swapChainDesc,
                 nullptr,
-                swapChain.put()));
+                m_swapChain.put()));
 
         m_compositionDevice = nullptr;
-
         winrt::check_hresult(
             DCompositionCreateDevice(
-                dxgiDevice.get(),
+                m_dxgiDevice.get(),
                 __uuidof(IDCompositionDevice),
                 m_compositionDevice.put_void()));
 
         m_compositionTarget = nullptr;
-        m_compositionVisual = nullptr;
-
         winrt::check_hresult(m_compositionDevice->CreateTargetForHwnd(m_window, true, m_compositionTarget.put()));
+
+        m_compositionVisual = nullptr;
         winrt::check_hresult(m_compositionDevice->CreateVisual(m_compositionVisual.put()));
         winrt::check_hresult(m_compositionVisual->SetContent(m_swapChain.get()));
         winrt::check_hresult(m_compositionTarget->SetRoot(m_compositionVisual.get()));
 
-        winrt::check_hresult(swapChain->QueryInterface(m_swapChain.put()));
-        winrt::check_hresult(dxgiDevice->SetMaximumFrameLatency(1));
+        m_dxgiSurface = nullptr;
+        winrt::check_hresult(m_swapChain->GetBuffer(0, __uuidof(IDXGISurface2), m_dxgiSurface.put_void()));
+        D2D1_BITMAP_PROPERTIES1 bitmapProperties{};
+        bitmapProperties.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
+        bitmapProperties.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        bitmapProperties.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
+        m_d2dTargetBitmap = nullptr;
+        winrt::check_hresult(
+            m_d2dContext->CreateBitmapFromDxgiSurface(
+                m_dxgiSurface.get(),
+                &bitmapProperties,
+                m_d2dTargetBitmap.put()));
+
+        m_d2dContext->SetTarget(m_d2dTargetBitmap.get());
+
+        // TODO
+        // Optional:
 
         // Create a render target view of the swap chain back buffer.
         winrt::com_ptr<ID3D11Texture2D> backBuffer;
@@ -269,26 +275,6 @@ namespace DX
         m_screenViewport = CD3D11_VIEWPORT(0.0f, 0.0f, (float)m_outputSize.width, (float)m_outputSize.height);
 
         m_d3dContext->RSSetViewports(1, &m_screenViewport);
-
-        // Create a Direct2D target bitmap associated with the
-        // swap chain back buffer and set it as the current target.
-        D2D1_BITMAP_PROPERTIES1 bitmapProperties =
-            D2D1::BitmapProperties1(
-                D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-                D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-                96.f,
-                96.f);
-
-        winrt::com_ptr<IDXGISurface2> dxgiBackBuffer;
-        winrt::check_hresult(m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer)));
-
-        winrt::check_hresult(
-            m_d2dContext->CreateBitmapFromDxgiSurface(
-                dxgiBackBuffer.get(),
-                &bitmapProperties,
-                m_d2dTargetBitmap.put()));
-
-        m_d2dContext->SetTarget(m_d2dTargetBitmap.get());
 
         // Grayscale text anti-aliasing is recommended for all Windows Runtime apps.
         m_d2dContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);

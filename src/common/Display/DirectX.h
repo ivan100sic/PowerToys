@@ -45,7 +45,7 @@ namespace DX
         // D3D Accessors.
         ID3D11Device5* GetD3DDevice() const { return m_d3dDevice.get(); }
         ID3D11DeviceContext4* GetD3DDeviceContext() const { return m_d3dContext.get(); }
-        IDXGISwapChain4* GetSwapChain() const { return m_swapChain.get(); }
+        IDXGISwapChain1* GetSwapChain() const { return m_swapChain.get(); }
         D3D_FEATURE_LEVEL GetDeviceFeatureLevel() const { return m_d3dFeatureLevel; }
         ID3D11RenderTargetView* GetBackBufferRenderTargetView() const { return m_d3dRenderTargetView.get(); }
         ID3D11DepthStencilView* GetDepthStencilView() const { return m_d3dDepthStencilView.get(); }
@@ -67,13 +67,17 @@ namespace DX
         winrt::com_ptr<IDWriteFactory3> m_dwriteFactory;
         winrt::com_ptr<IWICImagingFactory2> m_wicFactory;
         winrt::com_ptr<ID2D1DeviceContext6> m_d2dContext;
-        winrt::com_ptr<IDXGISwapChain4> m_swapChain;
+        winrt::com_ptr<IDXGISwapChain1> m_swapChain;
         winrt::com_ptr<ID3D11RenderTargetView> m_d3dRenderTargetView;
         winrt::com_ptr<ID3D11DepthStencilView> m_d3dDepthStencilView;
         winrt::com_ptr<ID2D1Bitmap1> m_d2dTargetBitmap;
         winrt::com_ptr<IDCompositionDevice> m_compositionDevice;
         winrt::com_ptr<IDCompositionTarget> m_compositionTarget;
         winrt::com_ptr<IDCompositionVisual> m_compositionVisual;
+        winrt::com_ptr<IDXGIFactory2> m_dxgiFactory;
+        winrt::com_ptr<IDXGIDevice3> m_dxgiDevice;
+        winrt::com_ptr<IDXGISurface2> m_dxgiSurface;
+
 
         HWND m_window{};
         D2D1_SIZE_U m_outputSize;
