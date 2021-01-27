@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include <common/logger/logger.h>
+#include <common/display/monitors.h>
 
 #include "FancyZonesData.h"
 #include "FancyZonesDataTypes.h"
@@ -14,6 +15,10 @@
 #include <ShellScalingApi.h>
 #include <mutex>
 #include <fileapi.h>
+
+// TODO remove after PR review
+#include <mmsystem.h>
+#pragma comment(lib, "winmm")
 
 #include <gdiplus.h>
 
@@ -141,6 +146,10 @@ bool ZoneWindow::Init(IZoneWindowHost* host, HINSTANCE hinstance, HMONITOR monit
 
     MakeWindowTransparent(m_window.get());
     // According to ShowWindow docs, we must call it with SW_SHOWNORMAL the first time
+
+    // TODO remove after PR review
+    PlaySoundW(L"SystemStart", NULL, SND_ASYNC);
+
     ShowWindow(m_window.get(), SW_SHOWNORMAL);
     ShowWindow(m_window.get(), SW_HIDE);
 

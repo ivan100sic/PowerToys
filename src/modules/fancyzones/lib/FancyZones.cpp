@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include <common/display/dpi_aware.h>
+#include <common/display/monitors.h>
 #include <common/logger/logger.h>
 #include <common/utils/resources.h>
 #include <common/utils/window.h>
@@ -794,8 +795,13 @@ LRESULT FancyZones::WndProc(HWND window, UINT message, WPARAM wparam, LPARAM lpa
     case WM_DISPLAYCHANGE:
     {
         // Display resolution changed. Invalidate cached work-areas so they can be recreated with latest information.
-        m_workAreaHandler.Clear();
-        OnDisplayChange(DisplayChangeType::DisplayChange);
+
+        // Don't do this if there is a full screen app running (e.g. a game) to avoid stealing its focus.
+        if (FullScreenAppRunningMonitor() != NULL)
+        {
+            m_workAreaHandler.Clear();
+            OnDisplayChange(DisplayChangeType::DisplayChange);
+        }   
     }
     break;
 
@@ -1127,7 +1133,7 @@ bool FancyZones::OnSnapHotkeyBasedOnPosition(HWND window, DWORD vkCode) noexcept
         current = MonitorFromWindow(window, MONITOR_DEFAULTTONULL);
     }
 
-    auto allMonitors = FancyZonesUtils::GetAllMonitorRects<&MONITORINFOEX::rcWork>();
+    auto allMonitors = GetAllMonitorRects<&MONITORINFOEX::rcWork>();
 
     if (current && allMonitors.size() > 1 && m_settings->GetSettings()->moveWindowAcrossMonitors)
     {
@@ -1226,7 +1232,7 @@ bool FancyZones::OnSnapHotkeyBasedOnPosition(HWND window, DWORD vkCode) noexcept
             return false;
         }
 
-        RECT combinedRect = FancyZonesUtils::GetAllMonitorsCombinedRect<&MONITORINFOEX::rcWork>();
+        RECT combinedRect = GetAllMonitorsCombinedRect<&MONITORINFOEX::rcWork>();
         windowRect = FancyZonesUtils::PrepareRectForCycling(windowRect, combinedRect, vkCode);
         chosenIdx = FancyZonesUtils::ChooseNextZoneByPosition(vkCode, windowRect, zoneRects);
         if (chosenIdx < zoneRects.size())

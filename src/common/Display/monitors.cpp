@@ -71,3 +71,43 @@ MonitorInfo MonitorInfo::GetPrimaryMonitor()
     EnumDisplayMonitors(NULL, NULL, GetPrimaryDisplayEnumCb, reinterpret_cast<LPARAM>(&primary));
     return primary;
 }
+
+HMONITOR FullScreenAppRunningMonitor()
+{
+    HWND foregroundWindow = GetForegroundWindow();
+    HWND shellWindow = GetShellWindow();
+    HWND desktopWindow = GetDesktopWindow();
+
+    if (foregroundWindow != NULL && foregroundWindow != shellWindow && foregroundWindow != desktopWindow)
+    {
+        RECT windowRect;
+        if (!GetClientRect(foregroundWindow, &windowRect))
+        {
+            return NULL;
+        }
+
+        HMONITOR monitor = MonitorFromWindow(foregroundWindow, MONITOR_DEFAULTTONEAREST);
+        if (!monitor)
+        {
+            return NULL;
+        }
+
+        MONITORINFO monitorInfo{ sizeof(MONITORINFO) };
+        GetMonitorInfoW(monitor, &monitorInfo);
+
+        if (memcmp(&monitorInfo.rcMonitor, &windowRect, sizeof(RECT)) == 0)
+        {
+            return monitor;
+        }
+
+        // Some apps actually size themselves to the combined monitor area
+        RECT combinedMonitorArea = GetAllMonitorsCombinedRect<&MONITORINFO::rcMonitor>();
+
+        if (memcmp(&combinedMonitorArea, &windowRect, sizeof(RECT)) == 0)
+        {
+            return monitor;
+        }
+    }
+
+    return NULL;
+}

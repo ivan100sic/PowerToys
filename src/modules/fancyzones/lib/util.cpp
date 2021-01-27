@@ -3,6 +3,7 @@
 #include "Settings.h"
 
 #include <common/display/dpi_aware.h>
+#include <common/display/monitors.h>
 #include <common/utils/process_path.h>
 #include <common/utils/window.h>
 

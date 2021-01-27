@@ -115,28 +115,6 @@ namespace FancyZonesUtils
     }
 
     template<RECT MONITORINFO::*member>
-    std::vector<std::pair<HMONITOR, RECT>> GetAllMonitorRects()
-    {
-        using result_t = std::vector<std::pair<HMONITOR, RECT>>;
-        result_t result;
-
-        auto enumMonitors = [](HMONITOR monitor, HDC hdc, LPRECT pRect, LPARAM param) -> BOOL {
-            MONITORINFOEX mi;
-            mi.cbSize = sizeof(mi);
-            result_t& result = *reinterpret_cast<result_t*>(param);
-            if (GetMonitorInfo(monitor, &mi))
-            {
-                result.push_back({ monitor, mi.*member });
-            }
-
-            return TRUE;
-        };
-
-        EnumDisplayMonitors(NULL, NULL, enumMonitors, reinterpret_cast<LPARAM>(&result));
-        return result;
-    }
-
-    template<RECT MONITORINFO::*member>
     std::vector<std::pair<HMONITOR, MONITORINFOEX>> GetAllMonitorInfo()
     {
         using result_t = std::vector<std::pair<HMONITOR, MONITORINFOEX>>;
@@ -155,32 +133,6 @@ namespace FancyZonesUtils
         };
 
         EnumDisplayMonitors(NULL, NULL, enumMonitors, reinterpret_cast<LPARAM>(&result));
-        return result;
-    }
-
-    template<RECT MONITORINFO::*member>
-    RECT GetAllMonitorsCombinedRect()
-    {
-        auto allMonitors = GetAllMonitorRects<member>();
-        bool empty = true;
-        RECT result{ 0, 0, 0, 0 };
-
-        for (auto& [monitor, rect] : allMonitors)
-        {
-            if (empty)
-            {
-                empty = false;
-                result = rect;
-            }
-            else
-            {
-                result.left = min(result.left, rect.left);
-                result.top = min(result.top, rect.top);
-                result.right = max(result.right, rect.right);
-                result.bottom = max(result.bottom, rect.bottom);
-            }
-        }
-
         return result;
     }
 
