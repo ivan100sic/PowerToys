@@ -39,6 +39,9 @@ namespace DX
         // Present the contents of the swap chain to the screen.
         void Present();
 
+        // Load an SVG document from given file name. Drawing <text> SVG elements is not supported.
+        winrt::com_ptr<ID2D1SvgDocument> LoadSVGFromFile(const std::wstring& fileName);
+
         // Device Accessors.
         D2D1_SIZE_U GetOutputSize() const { return m_outputSize; }
 

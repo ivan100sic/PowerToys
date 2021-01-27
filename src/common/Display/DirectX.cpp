@@ -1,6 +1,7 @@
 #define NOMINMAX
 
 #include "DirectX.h"
+#include <Shlwapi.h>
 
 namespace DX
 {
@@ -337,5 +338,24 @@ namespace DX
             winrt::check_hresult(hr);
             winrt::check_hresult(m_compositionDevice->Commit());
         }
+    }
+
+    winrt::com_ptr<ID2D1SvgDocument> DeviceResourcesHwnd::LoadSVGFromFile(const std::wstring& fileName)
+    {
+        winrt::com_ptr<ID2D1SvgDocument> result;
+        winrt::com_ptr<IStream> stream;
+        winrt::check_hresult(
+            SHCreateStreamOnFileEx(
+                fileName.c_str(),
+                STGM_READ,
+                FILE_ATTRIBUTE_NORMAL,
+                FALSE,
+                nullptr,
+                stream.put()));
+        winrt::check_hresult(m_d2dContext->CreateSvgDocument(
+            stream.get(),
+            D2D1::SizeF(1, 1),
+            result.put()));
+        return result;
     }
 }
