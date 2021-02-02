@@ -26,6 +26,7 @@ namespace NonLocalizable
 
     const wchar_t FancyZonesDataFile[] = L"zones-settings.json";
     const wchar_t FancyZonesAppZoneHistoryFile[] = L"app-zone-history.json";
+    const wchar_t FancyZonesEditorParametersFile[] = L"editor-parameters.json";
     const wchar_t RegistryPath[] = L"Software\\SuperFancyZones";
 }
 
@@ -507,7 +508,7 @@ void FancyZonesData::SaveAppZoneHistory() const
     JSONHelpers::SaveAppZoneHistory(appZoneHistoryFileName, appZoneHistoryMap);
 }
 
-void FancyZonesData::SaveFancyZonesEditorParameters(bool spanZonesAcrossMonitors, const std::wstring& virtualDesktopId, const HMONITOR& targetMonitor) const
+void FancyZonesData::SaveFancyZonesEditorParameters(bool spanZonesAcrossMonitors, const GUID& virtualDesktopId, const HMONITOR& targetMonitor) const
 {
     JSONHelpers::EditorArgs argsJson; /* json arguments */
     argsJson.processId = GetCurrentProcessId(); /* Process id */
@@ -516,10 +517,10 @@ void FancyZonesData::SaveFancyZonesEditorParameters(bool spanZonesAcrossMonitors
     if (spanZonesAcrossMonitors)
     {
         auto monitorRect = FancyZonesUtils::GetAllMonitorsCombinedRect<&MONITORINFOEX::rcWork>();
-        std::wstring monitorId = FancyZonesUtils::GenerateUniqueIdAllMonitorsArea(virtualDesktopId);
+        auto monitorId = FancyZonesUtils::GenerateUniqueIdAllMonitorsArea(virtualDesktopId);
 
         JSONHelpers::MonitorInfo monitorJson;
-        monitorJson.id = monitorId;
+        monitorJson.id = *monitorId->Serialize();
         monitorJson.top = monitorRect.top;
         monitorJson.left = monitorRect.left;
         monitorJson.isSelected = true;
@@ -543,14 +544,14 @@ void FancyZonesData::SaveFancyZonesEditorParameters(bool spanZonesAcrossMonitors
             JSONHelpers::MonitorInfo monitorJson;
 
             std::wstring deviceId = FancyZonesUtils::GetDisplayDeviceId(monitorInfo.szDevice, displayDeviceIdxMap);
-            std::wstring monitorId = FancyZonesUtils::GenerateUniqueId(monitor, deviceId, virtualDesktopId);
+            auto monitorId = FancyZonesUtils::GenerateUniqueId(monitor, deviceId, virtualDesktopId);
 
             if (monitor == targetMonitor)
             {
                 monitorJson.isSelected = true; /* Is monitor selected for the main editor window opening */
             }
 
-            monitorJson.id = monitorId; /* Monitor id */
+            monitorJson.id = *monitorId->Serialize(); /* Monitor id */
 
             UINT dpiX = 0;
             UINT dpiY = 0;

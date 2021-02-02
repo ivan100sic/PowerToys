@@ -652,7 +652,7 @@ void FancyZones::ToggleEditor() noexcept
 
     if (spanZonesAcrossMonitors)
     {
-        params += FancyZonesUtils::GenerateUniqueIdAllMonitorsArea(virtualDesktopId.get()) + divider; /* Monitor id where the Editor should be opened */
+        params += *FancyZonesUtils::GenerateUniqueIdAllMonitorsArea(m_currentDesktopId)->Serialize() + divider; /* Monitor id where the Editor should be opened */
     }
    
     // device id map
@@ -661,7 +661,7 @@ void FancyZones::ToggleEditor() noexcept
     bool showDpiWarning = false;
     int prevDpiX = -1, prevDpiY = -1;
     std::wstring monitorsDataStr;
-    for (auto& monitorData : allMonitors)
+    for (auto& monitor : allMonitors)
     {
         auto monitorId = FancyZonesUtils::GenerateMonitorId(monitor.second, monitor.first, m_currentDesktopId);
         if (!monitorId.has_value())
